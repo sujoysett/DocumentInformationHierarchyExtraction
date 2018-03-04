@@ -26,7 +26,7 @@ public class Word2JsonProcessor {
 
 	public static void main(String[] args) throws Exception {
 
-		String inputFileName = "/Users/muthukumaran/Downloads/Testdoc.docx";
+		String inputFileName = "documents/Testdoc.docx";
 		String outputFileName = "documents/TestProcedures.json";
 
 		if (inputFileName.endsWith("docx")) {
