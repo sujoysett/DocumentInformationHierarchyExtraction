@@ -1,7 +1,12 @@
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.io.PrintStream;
+import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -21,12 +26,14 @@ public class Word2JsonProcessor {
 
 	private static int SPLIT_OUTLINE_LVL = 2;
 	private static int SPLITDOC_CONTEXT_LVL = 3;
-	
+
 	private static int fontSizeBarrier = 11;
 
 	public static void main(String[] args) throws Exception {
 
-		String inputFileName = "documents/Testdoc.docx";
+		// String inputFileName = "/Users/muthukumaran/Downloads/Testdoc.docx";
+		String inputFileName = "C://Users//jagvenug//Desktop//Watson-POT//CSCS V2 DVP Real Time Data.docx";
+
 		String outputFileName = "documents/TestProcedures.json";
 
 		if (inputFileName.endsWith("docx")) {
@@ -38,9 +45,9 @@ public class Word2JsonProcessor {
 		}
 	}
 
-	public void performDocConv(String inputFileName, String outputFileName)  throws Exception{
+	public void performDocConv(String inputFileName, String outputFileName) throws Exception {
 
-		HWPFDocument doc = new  HWPFDocument(new FileInputStream(inputFileName));
+		HWPFDocument doc = new HWPFDocument(new FileInputStream(inputFileName));
 		int runningFontSize = -1;
 		String runningText = "";
 		JSONArray testDocs = new JSONArray();
@@ -51,19 +58,18 @@ public class Word2JsonProcessor {
 			final org.apache.poi.hwpf.usermodel.Paragraph paragraph = range.getParagraph(k);
 			for (int j = 0; j < paragraph.numCharacterRuns(); j++) {
 				final org.apache.poi.hwpf.usermodel.CharacterRun cr = paragraph.getCharacterRun(j);
-				
-				int fontSize = cr.getFontSize()/2;
-				
-				if (runningFontSize <0) {
+
+				int fontSize = cr.getFontSize() / 2;
+
+				if (runningFontSize < 0) {
 					runningFontSize = fontSize;
 					runningText = cr.text();
-				}
-				else {
+				} else {
 					if (runningFontSize != fontSize) {
 						if (runningFontSize <= fontSizeBarrier) {
 							JSONObject testBlock = new JSONObject();
 							testBlock.put("testBlock", runningText);
-							testBlock.put("context", new JSONObject( context));
+							testBlock.put("context", new JSONObject(context));
 							testDocs.add(testBlock);
 						} else if (runningFontSize > fontSizeBarrier) {
 							context.put(runningFontSize, runningText);
@@ -89,27 +95,26 @@ public class Word2JsonProcessor {
 		JSONObject context = new JSONObject();
 
 		for (XWPFParagraph para : docx.getParagraphs()) {
-			for (XWPFRun run:para.getRuns()) {
+			for (XWPFRun run : para.getRuns()) {
 				String paraStyle = para.getStyle();
 				int fontSize = run.getFontSize();
 				if (fontSize == -1) {
-					if( paraStyle != null){
-						fontSize = (docx.getStyles().getStyle(paraStyle).getCTStyle().getRPr().getSz().getVal().intValue())/2;
-					}
-					else {
+					if (paraStyle != null) {
+						fontSize = (docx.getStyles().getStyle(paraStyle).getCTStyle().getRPr().getSz().getVal()
+								.intValue()) / 2;
+					} else {
 						fontSize = docx.getStyles().getDefaultRunStyle().getFontSize();
 					}
-				}				
-				if (runningFontSize <0) {
+				}
+				if (runningFontSize < 0) {
 					runningFontSize = fontSize;
 					runningText = run.text();
-				}
-				else {
+				} else {
 					if (runningFontSize != fontSize) {
 						if (runningFontSize <= fontSizeBarrier) {
 							JSONObject testBlock = new JSONObject();
 							testBlock.put("testBlock", runningText);
-							testBlock.put("context", new JSONObject( context));
+							testBlock.put("context", new JSONObject(context));
 							testDocs.add(testBlock);
 						} else if (runningFontSize > fontSizeBarrier) {
 							context.put(runningFontSize, runningText);
@@ -124,7 +129,8 @@ public class Word2JsonProcessor {
 		docx.close();
 		System.setOut(new PrintStream(new FileOutputStream(new File(outputFileName))));
 		System.out.println(testDocs.toJSONString());
-}
+	}
+
 	/**
 	 * @param inputFileName
 	 * @param outputFileName
@@ -132,7 +138,7 @@ public class Word2JsonProcessor {
 	 */
 	public void getDocxByNumLvl(String inputFileName, String outputFileName) throws Exception {
 
-		Map<String,String> ctxMap = new HashMap<String,String>();
+		Map<String, String> ctxMap = new HashMap<String, String>();
 		String runningText = "";
 
 		XWPFDocument docx = new XWPFDocument(new FileInputStream(inputFileName));
@@ -148,27 +154,36 @@ public class Word2JsonProcessor {
 
 			String cText = "";
 			for (XWPFRun run : para.getRuns()) {
-				cText += run.text()+" ";
+				cText += run.text() + " ";
 			}
+
+			cText += System.lineSeparator();
 
 			if (null != paraStyle) {
 
-				CTDecimalNumber oLvl = styles.getStyle(paraStyle).getCTStyle().getPPr().getOutlineLvl();
+				CTDecimalNumber oLvl = null;
+				try {
+					oLvl = styles.getStyle(paraStyle).getCTStyle().getPPr().getOutlineLvl();
+				} catch (Exception x) {
+					continue;
+				}
 
 				if (null != oLvl) {
 					outlineLvl = oLvl.getVal().intValue();
 
+					// context at level 1..need to capture?
 					if (outlineLvl < SPLIT_OUTLINE_LVL) {
 						append_paragraphContent = false;
 						continue;
 					}
-					
+
 					if (outlineLvl == SPLIT_OUTLINE_LVL) {
 						append_paragraphContent = true;
 						if (!runningText.isEmpty())
-							populateJson(runningText,ctxMap);
-							runningText = "";
-							ctxMap.put("title", cText);
+							populateJson(runningText, ctxMap);
+						runningText = "";
+
+						ctxMap.put("title", cText);
 					}
 
 					if (outlineLvl == SPLITDOC_CONTEXT_LVL) {
@@ -187,7 +202,7 @@ public class Word2JsonProcessor {
 			}
 		}
 
-		populateJson(runningText,ctxMap);
+		populateJson(runningText, ctxMap);
 
 		docx.close();
 		System.out.println(testDocs.toJSONString());
@@ -195,16 +210,33 @@ public class Word2JsonProcessor {
 		System.out.println(testDocs.toJSONString());
 	}
 
-	private void populateJson(String text, Map<String, String> ctxMap) {
+	private void populateJson(String text, Map<String, String> ctxMap) throws IOException {
 		if (!text.isEmpty()) {
 			JSONObject tc = new JSONObject();
 			tc.put("testcase", text);
 
 			for (Map.Entry<String, String> entry : ctxMap.entrySet()) {
-			    String key = entry.getKey();
-			    String value = entry.getValue();
-			    tc.put(key, value);
+				String key = entry.getKey();
+				String value = entry.getValue();
+				tc.put(key, value);
 			}
+
+			XWPFDocument document = new XWPFDocument();
+			XWPFParagraph tmpParagraph = document.createParagraph();
+			XWPFRun tmpRun = tmpParagraph.createRun();
+			tmpRun.setText(text);
+			tmpRun.setFontSize(18);
+			document.write(
+					new FileOutputStream(new File("documents/splits/docx/tc_" + System.currentTimeMillis() + ".docx")));
+			document.close();
+
+			OutputStreamWriter outStream = new OutputStreamWriter(
+					new FileOutputStream(new File("documents/splits/txts/tc_" + System.currentTimeMillis() + ".txt")),
+					"UTF-8");
+			BufferedWriter writer = new BufferedWriter(outStream);
+			writer.write(text);
+			writer.close();
+
 			testDocs.add(tc);
 		}
 	}
