@@ -1,12 +1,10 @@
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
 import java.io.PrintStream;
-import java.sql.Timestamp;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -28,11 +26,13 @@ public class Word2JsonProcessor {
 	private static int SPLITDOC_CONTEXT_LVL = 3;
 
 	private static int fontSizeBarrier = 11;
+	
+	private static String OUT_FOLDER = "/Users/muthukumaran/Documents/Projects/cg_docs";
 
 	public static void main(String[] args) throws Exception {
 
-		// String inputFileName = "/Users/muthukumaran/Downloads/Testdoc.docx";
-		String inputFileName = "C://Users//jagvenug//Desktop//Watson-POT//CSCS V2 DVP Real Time Data.docx";
+		 String inputFileName = "/Users/muthukumaran/Downloads/Testdoc.docx";
+		//String inputFileName = "C://Users//jagvenug//Desktop//Watson-POT//CSCS V2 DVP Real Time Data.docx";
 
 		String outputFileName = "documents/TestProcedures.json";
 
@@ -154,7 +154,7 @@ public class Word2JsonProcessor {
 
 			String cText = "";
 			for (XWPFRun run : para.getRuns()) {
-				cText += run.text() + " ";
+				cText += run.text();
 			}
 
 			cText += System.lineSeparator();
@@ -203,41 +203,25 @@ public class Word2JsonProcessor {
 		}
 
 		populateJson(runningText, ctxMap);
-
 		docx.close();
-		System.out.println(testDocs.toJSONString());
-		System.setOut(new PrintStream(new FileOutputStream(new File(outputFileName))));
-		System.out.println(testDocs.toJSONString());
 	}
 
+	/**
+	 * @param text
+	 * @param ctxMap
+	 * @throws IOException
+	 */
 	private void populateJson(String text, Map<String, String> ctxMap) throws IOException {
 		if (!text.isEmpty()) {
 			JSONObject tc = new JSONObject();
-			tc.put("testcase", text);
+			tc.put("procedure", text);
 
 			for (Map.Entry<String, String> entry : ctxMap.entrySet()) {
 				String key = entry.getKey();
 				String value = entry.getValue();
 				tc.put(key, value);
 			}
-
-			XWPFDocument document = new XWPFDocument();
-			XWPFParagraph tmpParagraph = document.createParagraph();
-			XWPFRun tmpRun = tmpParagraph.createRun();
-			tmpRun.setText(text);
-			tmpRun.setFontSize(18);
-			document.write(
-					new FileOutputStream(new File("documents/splits/docx/tc_" + System.currentTimeMillis() + ".docx")));
-			document.close();
-
-			OutputStreamWriter outStream = new OutputStreamWriter(
-					new FileOutputStream(new File("documents/splits/txts/tc_" + System.currentTimeMillis() + ".txt")),
-					"UTF-8");
-			BufferedWriter writer = new BufferedWriter(outStream);
-			writer.write(text);
-			writer.close();
-
-			testDocs.add(tc);
+			Files.write(Paths.get(OUT_FOLDER+"/tc_"+System.currentTimeMillis() + ".json"), tc.toJSONString().getBytes());
 		}
 	}
 }
