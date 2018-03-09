@@ -1,43 +1,29 @@
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.PrintStream;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.Map;
 
 import org.apache.poi.hwpf.HWPFDocument;
 import org.apache.poi.hwpf.usermodel.Range;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.poi.xwpf.usermodel.XWPFRun;
-import org.apache.poi.xwpf.usermodel.XWPFStyles;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTDecimalNumber;
 
 public class Word2JsonProcessor {
 
-	JSONArray testDocs = new JSONArray();
-
-	private static int SPLIT_OUTLINE_LVL = 2;
-	private static int SPLITDOC_CONTEXT_LVL = 3;
-
 	private static int fontSizeBarrier = 11;
-	
-	private static String OUT_FOLDER = "/Users/muthukumaran/Documents/Projects/cg_docs";
 
 	public static void main(String[] args) throws Exception {
 
-		 String inputFileName = "/Users/muthukumaran/Downloads/Testdoc.docx";
-		//String inputFileName = "C://Users//jagvenug//Desktop//Watson-POT//CSCS V2 DVP Real Time Data.docx";
+		// String inputFileName = "/Users/muthukumaran/Downloads/Testdoc.docx";
+		String inputFileName = "C://Users//jagvenug//Desktop//Watson-POT//CSCS V2 DVP Real Time Data.docx";
 
 		String outputFileName = "documents/TestProcedures.json";
 
 		if (inputFileName.endsWith("docx")) {
-			new Word2JsonProcessor().getDocxByNumLvl(inputFileName, outputFileName);
+			new Word2JsonProcessor().performDocxConv(inputFileName, outputFileName);
 		} else if (inputFileName.endsWith("doc")) {
 			new Word2JsonProcessor().performDocConv(inputFileName, outputFileName);
 		} else {
@@ -129,99 +115,5 @@ public class Word2JsonProcessor {
 		docx.close();
 		System.setOut(new PrintStream(new FileOutputStream(new File(outputFileName))));
 		System.out.println(testDocs.toJSONString());
-	}
-
-	/**
-	 * @param inputFileName
-	 * @param outputFileName
-	 * @throws Exception
-	 */
-	public void getDocxByNumLvl(String inputFileName, String outputFileName) throws Exception {
-
-		Map<String, String> ctxMap = new HashMap<String, String>();
-		String runningText = "";
-
-		XWPFDocument docx = new XWPFDocument(new FileInputStream(inputFileName));
-		XWPFStyles styles = docx.getStyles();
-
-		boolean append_paragraphContent = false;
-		boolean addParagraphContentAsContext = false;
-
-		for (XWPFParagraph para : docx.getParagraphs()) {
-
-			int outlineLvl = -1;
-			String paraStyle = para.getStyle();
-
-			String cText = "";
-			for (XWPFRun run : para.getRuns()) {
-				cText += run.text();
-			}
-
-			cText += System.lineSeparator();
-
-			if (null != paraStyle) {
-
-				CTDecimalNumber oLvl = null;
-				try {
-					oLvl = styles.getStyle(paraStyle).getCTStyle().getPPr().getOutlineLvl();
-				} catch (Exception x) {
-					continue;
-				}
-
-				if (null != oLvl) {
-					outlineLvl = oLvl.getVal().intValue();
-
-					// context at level 1..need to capture?
-					if (outlineLvl < SPLIT_OUTLINE_LVL) {
-						append_paragraphContent = false;
-						continue;
-					}
-
-					if (outlineLvl == SPLIT_OUTLINE_LVL) {
-						append_paragraphContent = true;
-						if (!runningText.isEmpty())
-							populateJson(runningText, ctxMap);
-						runningText = "";
-
-						ctxMap.put("title", cText);
-					}
-
-					if (outlineLvl == SPLITDOC_CONTEXT_LVL) {
-						addParagraphContentAsContext = true;
-					} else {
-						addParagraphContentAsContext = false;
-					}
-				}
-			}
-
-			if (append_paragraphContent) {
-				runningText += cText;
-				if (outlineLvl < 0 && addParagraphContentAsContext) {
-					ctxMap.put("ctx", cText);
-				}
-			}
-		}
-
-		populateJson(runningText, ctxMap);
-		docx.close();
-	}
-
-	/**
-	 * @param text
-	 * @param ctxMap
-	 * @throws IOException
-	 */
-	private void populateJson(String text, Map<String, String> ctxMap) throws IOException {
-		if (!text.isEmpty()) {
-			JSONObject tc = new JSONObject();
-			tc.put("procedure", text);
-
-			for (Map.Entry<String, String> entry : ctxMap.entrySet()) {
-				String key = entry.getKey();
-				String value = entry.getValue();
-				tc.put(key, value);
-			}
-			Files.write(Paths.get(OUT_FOLDER+"/tc_"+System.currentTimeMillis() + ".json"), tc.toJSONString().getBytes());
-		}
 	}
 }
