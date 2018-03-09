@@ -81,7 +81,7 @@ public class Word2JsonProcessor {
 				}
 			}
 		}
-		doc.close();
+		//doc.close();
 		System.setOut(new PrintStream(new FileOutputStream(new File(outputFileName))));
 		System.out.println(testDocs.toJSONString());
 	}
