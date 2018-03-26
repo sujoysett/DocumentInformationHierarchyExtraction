@@ -52,6 +52,8 @@ public class DocxExtract {
 	int omitted_tc = 0;
 	int LVL_SPLIT = Integer.parseInt(config.getProperty("LVL_SPLIT"));
 	int LVL_CTX = Integer.parseInt(config.getProperty("LVL_CTX"));
+	int LVL_CNTNT = Integer.parseInt(config.getProperty("LVL_CONTENT"));
+
 	String SRC_FOLDER = config.getProperty("SRC_FOLDER");
 	String OUT_FOLDER = config.getProperty("OUT_FOLDER");
 	List<String> sections_to_capture = Arrays.asList(config.getProperty("sections_to_capture").split(","));
@@ -153,13 +155,19 @@ public class DocxExtract {
 						if (pLvl_val > S_LVL) {
 							capturingText = false;
 							capturingTables = false;
-							for (String s : sections_to_capture){
-								if (paraText.toLowerCase().contains(s.toLowerCase())){
-									capturingText = true;
-									capturingTables = true;
-									break;
-								}
-							}							
+							
+							if (pLvl_val > LVL_CNTNT) {
+								capturingText = true;
+								capturingTables = true;
+							}else{
+								for (String s : sections_to_capture){
+									if (paraText.toLowerCase().contains(s.toLowerCase())){
+										capturingText = true;
+										capturingTables = true;
+										break;
+									}
+								}							
+							}
 						}
 
 						if (pLvl_val == LVL_CTX) {
