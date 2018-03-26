@@ -6,7 +6,9 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -52,6 +54,8 @@ public class DocxExtract {
 	int LVL_CTX = Integer.parseInt(config.getProperty("LVL_CTX"));
 	String SRC_FOLDER = config.getProperty("SRC_FOLDER");
 	String OUT_FOLDER = config.getProperty("OUT_FOLDER");
+	List<String> sections_to_capture = Arrays.asList(config.getProperty("sections_to_capture").split(","));
+
 
 	public DocxExtract() {
 		try {
@@ -74,8 +78,6 @@ public class DocxExtract {
 	}
 
 	public static void main(String[] args) throws Exception {
-		// new
-		// Test().getDocxByNumLvl("/Users/muthukumaran/Downloads/Testdoc.docx");
 		DocxExtract t = new DocxExtract();
 	}
 
@@ -134,7 +136,7 @@ public class DocxExtract {
 							capturingTables = false;
 							continue;
 						}
-
+						
 						if (pLvl_val == S_LVL) {
 							capturingText = true;
 							capturingTables = true;
@@ -142,9 +144,22 @@ public class DocxExtract {
 							if (!runningText.isEmpty()) {
 								createFiles(runningText, ctx, title);
 							}
+							
 							title = paraText;
 							runningText = "";
 							ctx = "";
+						}
+
+						if (pLvl_val > S_LVL) {
+							capturingText = false;
+							capturingTables = false;
+							for (String s : sections_to_capture){
+								if (paraText.toLowerCase().contains(s.toLowerCase())){
+									capturingText = true;
+									capturingTables = true;
+									break;
+								}
+							}							
 						}
 
 						if (pLvl_val == LVL_CTX) {
