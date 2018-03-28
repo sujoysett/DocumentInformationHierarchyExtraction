@@ -64,14 +64,15 @@ public class HTML2TJsonConvertor {
 						String productDescriptionBody = "The task name is \"" + immediatePrecedingHigherFontString +"\""
 								+ System.lineSeparator() + System.lineSeparator() +productDescription;
 
-						writeProcToIndividualTextFile(productDocs.size()+1, productDescriptionBody);
 
 						JSONObject productDoc = new JSONObject();
 						productDoc.put("procedure", productDescriptionBody);
-						productDoc.put("fullContext", new JSONObject( context));
-						productDoc.put("immediateContext", immediatePrecedingHigherFontString);
+						productDoc.put("full_context", new JSONObject( context));
+						productDoc.put("ctx", "The task name is \"" + immediatePrecedingHigherFontString + "\"");
+						productDoc.put("title", immediatePrecedingHigherFontString);
 						productDocs.add(productDoc);
-						
+
+						writeProcToIndividualTextFile(productDocs.size()+1, productDescriptionBody);
 						writeProcToIndividualJsonFile(productDocs.size()+1, productDoc);
 						productDescription = "";
 
