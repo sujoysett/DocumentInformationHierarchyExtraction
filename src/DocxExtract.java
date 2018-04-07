@@ -219,7 +219,7 @@ public class DocxExtract {
 		} else {
 			try {
 				String ms = "" + extracted_tc;
-				Files.write(Paths.get(OUT_FOLDER + "//tc_" + ms + ".json"), json.toJSONString().getBytes());
+				Files.write(Paths.get(OUT_FOLDER + "//tc_" + ms + ".json"), json.toJSONString().getBytes(Charset.forName("UTF-8")));
 				Files.write(Paths.get(OUT_FOLDER + "//tc_" + ms + ".txt"), e_txt.getBytes(Charset.forName("UTF-8")),
 						StandardOpenOption.CREATE);
 				extracted_tc++;
